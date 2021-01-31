@@ -2,11 +2,14 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <pthread.h>
 using namespace std;
 ifstream input; // Opens the input file
-void printDoubleStringVector(vector<vector<string>> doubleVector);
+// void printDoubleStringVector(vector<vector<string>> doubleVector);
 vector<vector<string>> clients;
 fstream outputStream;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+void * printDoubleStringVector(void * args);
 int main(int argc, char *argv[]) {
    
     string theatorName,numClientsStr; // Second line of input file
@@ -43,16 +46,36 @@ int main(int argc, char *argv[]) {
     }
     input.close();
 
-    printDoubleStringVector(clients);
+    // printDoubleStringVector(clients);
+
+    pthread_t tid_1; // first thread ID
+    pthread_t tid_2; // second thread ID
+
+    int offset1 = 1;
+	// Create thread and assign count function
+	pthread_create(&tid_1, NULL, printDoubleStringVector, NULL);
+    
+	int offset2 = -1;
+	pthread_create(&tid_2, NULL, printDoubleStringVector, NULL);
+
+	// Wait for the threads to finish 
+	pthread_join(tid_1, NULL);
+	pthread_join(tid_2, NULL);
+
 
     return 0;
 }
 
-void printDoubleStringVector(vector<vector<string>> doubleVector) {
-    for(int i = 0; i < doubleVector.size(); i++){
-        for(int j=0; j < doubleVector[i].size(); j++){
-            cout << " " << doubleVector[i][j] << " ";
+void * printDoubleStringVector(void * args) {
+    for(int i = 0; i < clients.size(); i++){
+        for(int j=0; j < clients[i].size(); j++){
+            // Start critical section
+            pthread_mutex_lock(&mutex);
+            cout << " " << clients[i][j] << " ";
+            // End critical section
+            pthread_mutex_unlock(&mutex);
         }
         cout << endl;
     }
+    pthread_exit(NULL);
 }
