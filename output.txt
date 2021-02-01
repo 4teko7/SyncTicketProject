@@ -1,12 +1,12 @@
 Welcome to the Sync-Ticket!
-Client2 requests seat1, reserves seat 1. Signed by Teller B.
-Client3 requests seat5, reserves seat 5. Signed by Teller C.
-Client4 requests seat1, reserves seat 2. Signed by Teller B.
-Client1 requests seat5, reserves seat 3. Signed by Teller A.
-Client5 requests seat5, reserves seat 4. Signed by Teller A.
-Client6 requests seat10, reserves seat 10. Signed by Teller B.
+Client2 requests seat1, reserves seat 1. Signed by Teller C.
+Client3 requests seat5, reserves seat 2. Signed by Teller C.
+Client4 requests seat1, reserves seat 3. Signed by Teller C.
+Client1 requests seat5, reserves seat 5. Signed by Teller C.
+Client5 requests seat5, reserves seat 4. Signed by Teller C.
+Client6 requests seat10, reserves seat 10. Signed by Teller C.
 Client7 requests seat10, reserves seat 6. Signed by Teller C.
-Client10 requests seat10, reserves seat 7. Signed by Teller A.
-Client9 requests seat10, reserves seat 8. Signed by Teller B.
+Client10 requests seat10, reserves seat 7. Signed by Teller C.
+Client9 requests seat10, reserves seat 8. Signed by Teller C.
 Client8 requests seat10, reserves seat 9. Signed by Teller C.
 All clients received service.
