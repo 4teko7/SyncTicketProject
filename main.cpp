@@ -132,11 +132,11 @@ void * tellers(void * args) {
                 clientInfo = clientQueue.front();
                 clientQueue.pop();
                 completedClientNumber++;
-                isAFree = false;
                 if(seats[stoi(clientInfo.second[3])] != "FULL") {
                     seats[stoi(clientInfo.second[3])] = "FULL";
                     indexOfSeat = stoi(clientInfo.second[3]);
                 }
+                isAFree = false;
                 std::this_thread::sleep_for(std::chrono::milliseconds(stoi(clientInfo.second[2]))); // sleep for 1 second
                 rezerveSeat(type,clientInfo,indexOfSeat);
                 //cout << "A : " << clientInfo.first << " " << clientInfo.second[0] << endl;
@@ -147,11 +147,11 @@ void * tellers(void * args) {
                 clientInfo = clientQueue.front();
                 clientQueue.pop();
                 completedClientNumber++;
-                isBFree = false;
                 if(seats[stoi(clientInfo.second[3])] != "FULL") {
                     seats[stoi(clientInfo.second[3])] = "FULL";
                     indexOfSeat = stoi(clientInfo.second[3]);
                 }
+                isBFree = false;
                 std::this_thread::sleep_for(std::chrono::milliseconds(stoi(clientInfo.second[2]))); // sleep for 1 second
                 rezerveSeat(type,clientInfo,indexOfSeat);
                 //cout << "B : " << clientInfo.first << " " << clientInfo.second[0] << endl;
@@ -162,11 +162,11 @@ void * tellers(void * args) {
                 clientInfo = clientQueue.front();
                 clientQueue.pop();
                 completedClientNumber++;
-                isCFree = false;
                 if(seats[stoi(clientInfo.second[3])] != "FULL") {
                     seats[stoi(clientInfo.second[3])] = "FULL";
                     indexOfSeat = stoi(clientInfo.second[3]);
                 }
+                isCFree = false;
                 std::this_thread::sleep_for(std::chrono::milliseconds(stoi(clientInfo.second[2]))); // sleep for 1 second
                 rezerveSeat(type,clientInfo,indexOfSeat);
                 //cout << "C : " << clientInfo.first << " " << clientInfo.second[0] << " " << stoi(clientInfo.second[1]) << " " << clientInfo.second[2] << " " << clientInfo.second[3] << endl;
@@ -183,29 +183,26 @@ void * tellers(void * args) {
 
 void rezerveSeat(string type, pair<pthread_t,vector<string>> clientInfo, int indexOfSeat){
     pthread_mutex_lock(&mutex);
-            if(clientInfo.second[0] !="") {
-                cout<< type << " " << clientInfo.second[0] << " " << clientInfo.second[1] << " " << clientInfo.second[2] << " " << clientInfo.second[3] <<endl;
+        if(clientInfo.second[0] !="") {
+            cout<< type << " " << clientInfo.second[0] << " " << clientInfo.second[1] << " " << clientInfo.second[2] << " " << clientInfo.second[3] <<endl;
 
-                if(indexOfSeat != -1){
-                    seats[stoi(clientInfo.second[3])] = "FULL";
-                    outputStream << clientInfo.second[0] << " requests seat" << stoi(clientInfo.second[3]) << "," << " reserves seat " << indexOfSeat << ". Signed by Teller C.\n";
-                } else {
-                    int index = -1;
-                    for(int i = 1; i <= numberOfSeats; i++){
-                        if(seats.at(i) == "") {
-                            index = i;
-                            break;
-                        }
-                    }
-                    if(index != -1){
-                        seats[index] = "FULL";
-                        outputStream << clientInfo.second[0] << " requests seat" << stoi(clientInfo.second[3]) << ", reserves seat " << index << ". Signed by Teller C.\n";
+            if(indexOfSeat != -1){
+                outputStream << clientInfo.second[0] << " requests seat" << stoi(clientInfo.second[3]) << "," << " reserves seat " << indexOfSeat << ". Signed by Teller C.\n";
+            } else {
+                int index = -1;
+                for(int i = 1; i <= numberOfSeats; i++){
+                    if(seats.at(i) == "") {
+                        index = i;
+                        break;
                     }
                 }
+                if(index != -1){
+                    seats[index] = "FULL";
+                    outputStream << clientInfo.second[0] << " requests seat" << stoi(clientInfo.second[3]) << ", reserves seat " << index << ". Signed by Teller C.\n";
+                }
             }
-            
-
-            pthread_mutex_unlock(&mutex);
+        }
+    pthread_mutex_unlock(&mutex);
 }
 void * printDoubleStringVector(void * args) {
     for(int i = 0; i < clients.size(); i++){
