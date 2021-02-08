@@ -1,2 +1,0 @@
-g++ -o main -std=c++14 main.cpp -lpthread
-./main configuration_file.txt output.txt
