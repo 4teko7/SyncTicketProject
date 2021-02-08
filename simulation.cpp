@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
     for(int i = 0; i < 3; i++){
         pthread_t tid;
         pthread_create(&tid, NULL, tellers, (void *) &type[i]); // creating all tellers
-        std::this_thread::sleep_for(std::chrono::milliseconds(1)); // sleep for 1 millisecond to make sync order of tellers.
+        std::this_thread::sleep_for(std::chrono::milliseconds(3)); // sleep for 1 millisecond to make sync order of tellers.
     }
 
 
