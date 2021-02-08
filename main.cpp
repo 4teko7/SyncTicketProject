@@ -23,12 +23,14 @@ void * printDoubleStringVector(void * args);
 void * putClientsInQueue(void * args);
 void * tellers(void * args);
 void rezerveSeat(string type, pair<pthread_t,vector<string>> clientInfo, int indexOfSeat);
+int getAvailableSeatForReserve(int numberOfSeats);
 queue<pair<pthread_t,vector<string>>> clientQueue;
 vector<pthread_t> tids;
 int completedClientNumber = 0;
 int numClients;
 int numberOfSeats;
 map<int,string> seats;
+string FULL  = "FULL";
 int main(int argc, char *argv[]) {
    
     string theatorName,numClientsStr; // Second line of input file
@@ -57,7 +59,7 @@ int main(int argc, char *argv[]) {
             try {
                 vector<string> line;
                 for(int i = 0; i < 4 && getline(ss, word, ','); i++){
-                    line.push_back(word);
+                    line.push_back(word); //clientName,arrivalTime,serviceTime,seatNumber;
                 }
                 clients.push_back(line);
                 line.clear();
@@ -76,16 +78,14 @@ int main(int argc, char *argv[]) {
     for(int i = 0; i < 3; i++){
         pthread_t tid;
         pthread_create(&tid, NULL, tellers, (void *) &type[i]);
-        if(i == 0) aTid = tid;
-        else if(i == 1) bTid = tid;
-        else if(i == 2) cTid = tid;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1)); // sleep for 1 millisecond
     }
 
 
     for(int i = 0; i < clients.size(); i++){
         pthread_t tid;
         pthread_create(&tid, NULL, putClientsInQueue, &clients[i]);
-        tids.push_back(tid);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1)); // sleep for 1 millisecond
     }
 
     pthread_join(aTid, NULL);
@@ -103,13 +103,18 @@ int main(int argc, char *argv[]) {
 
 
 void * putClientsInQueue(void * args) {
-    vector<string> treadInfo = *(vector<string> *) args;
+    vector<string> treadInfo = *(vector<string> *) args; //clientName,arrivalTime,serviceTime,seatNumber;
+    
+    pthread_mutex_lock(&mutex);
+    tids.push_back(pthread_self());
+    pthread_mutex_unlock(&mutex);
+
     int sleepTime = stoi(treadInfo[1]);
     std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime)); // sleep for arrival time
     
     // critical section
     pthread_mutex_lock(&mutex);
-    clientQueue.push(make_pair(pthread_self(),treadInfo));
+    clientQueue.push(make_pair(pthread_self(),treadInfo)); //QUEUE OF first=>threadPid, second=>clientName,arrivalTime,serviceTime,seatNumber;
     pthread_mutex_unlock(&mutex);
     // End Of critical section
     
@@ -120,61 +125,57 @@ void * putClientsInQueue(void * args) {
 
 void * tellers(void * args) {
     string type = *(string *) args;
+    if(type == "A") aTid = pthread_self();
+    else if(type == "B") bTid = pthread_self();
+    else if(type == "C") cTid = pthread_self();
+
+    outputStream << "Teller "<< type <<" has arrived.\n";
+    outputStream.flush();
     //cout << type << endl;
 
     pair<pthread_t,vector<string>> clientInfo;
     while (completedClientNumber != numClients) {
-    int indexOfSeat=-1;
-        if(!clientQueue.empty()){
+        if(clientQueue.empty()) continue;
+        if(isAFree && pthread_self() != aTid) continue;
+        if(!isAFree && isBFree && pthread_self() != bTid) continue;
+        if(!isAFree && !isBFree && pthread_self() != cTid) continue;
+        int indexOfSeat=-1;
 
-            if(isAFree && pthread_self() == aTid) {
-                if(clientQueue.empty()) continue;
-                clientInfo = clientQueue.front();
-                clientQueue.pop();
-                completedClientNumber++;
-                if(seats[stoi(clientInfo.second[3])] != "FULL") {
-                    seats[stoi(clientInfo.second[3])] = "FULL";
-                    indexOfSeat = stoi(clientInfo.second[3]);
-                }
-                isAFree = false;
-                std::this_thread::sleep_for(std::chrono::milliseconds(stoi(clientInfo.second[2]))); // sleep for 1 second
-                rezerveSeat(type,clientInfo,indexOfSeat);
-                //cout << "A : " << clientInfo.first << " " << clientInfo.second[0] << endl;
-                isAFree = true;
+       if(clientQueue.empty()) continue;
+       
+        pthread_mutex_lock(&mutex);
+        clientInfo = clientQueue.front(); // //first=>threadPid, second=>clientName,arrivalTime,serviceTime,seatNumber;
+        clientQueue.pop();
+        completedClientNumber++;
+        pthread_mutex_unlock(&mutex);
+
+        if(seats[stoi(clientInfo.second[3])] != FULL && stoi(clientInfo.second[3]) <= numberOfSeats) {
+            indexOfSeat = stoi(clientInfo.second[3]);
+
+            pthread_mutex_lock(&mutex);
+            seats[indexOfSeat] = FULL;
+            pthread_mutex_unlock(&mutex);
+
+        } else {
+            indexOfSeat = getAvailableSeatForReserve(numberOfSeats);
+            if(indexOfSeat != -1) {
+                pthread_mutex_lock(&mutex);
+                seats[indexOfSeat] = FULL;
+                pthread_mutex_unlock(&mutex);
             }
-            else if(!isAFree && isBFree && pthread_self() == bTid){
-                if(clientQueue.empty()) continue;
-                clientInfo = clientQueue.front();
-                clientQueue.pop();
-                completedClientNumber++;
-                if(seats[stoi(clientInfo.second[3])] != "FULL") {
-                    seats[stoi(clientInfo.second[3])] = "FULL";
-                    indexOfSeat = stoi(clientInfo.second[3]);
-                }
-                isBFree = false;
-                std::this_thread::sleep_for(std::chrono::milliseconds(stoi(clientInfo.second[2]))); // sleep for 1 second
-                rezerveSeat(type,clientInfo,indexOfSeat);
-                //cout << "B : " << clientInfo.first << " " << clientInfo.second[0] << endl;
-                isBFree = true;
-            }
-            else if(!isAFree && !isBFree && isCFree && pthread_self() == cTid){
-                if(clientQueue.empty()) continue;
-                clientInfo = clientQueue.front();
-                clientQueue.pop();
-                completedClientNumber++;
-                if(seats[stoi(clientInfo.second[3])] != "FULL") {
-                    seats[stoi(clientInfo.second[3])] = "FULL";
-                    indexOfSeat = stoi(clientInfo.second[3]);
-                }
-                isCFree = false;
-                std::this_thread::sleep_for(std::chrono::milliseconds(stoi(clientInfo.second[2]))); // sleep for 1 second
-                rezerveSeat(type,clientInfo,indexOfSeat);
-                //cout << "C : " << clientInfo.first << " " << clientInfo.second[0] << " " << stoi(clientInfo.second[1]) << " " << clientInfo.second[2] << " " << clientInfo.second[3] << endl;
-                isCFree = true;
-            }
-            // A,B,C => [C,A,B] => A,B,C
-            
         }
+        if(type == "A") isAFree = false;
+        else if(type == "B") isBFree = false;
+        else if(type == "C") isCFree = false;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(stoi(clientInfo.second[2]))); // sleep 
+        rezerveSeat(type,clientInfo,indexOfSeat);
+
+        if(type == "A") isAFree = true;
+        else if(type == "B") isBFree = true;
+        else if(type == "C") isCFree = true;
+
+            
     }
     
     pthread_exit(NULL);
@@ -182,28 +183,29 @@ void * tellers(void * args) {
 }
 
 void rezerveSeat(string type, pair<pthread_t,vector<string>> clientInfo, int indexOfSeat){
-    pthread_mutex_lock(&mutex);
-        if(clientInfo.second[0] !="") {
-            cout<< type << " " << clientInfo.second[0] << " " << clientInfo.second[1] << " " << clientInfo.second[2] << " " << clientInfo.second[3] <<endl;
+        // cout<< type << " " << clientInfo.second[0] << " " << clientInfo.second[1] << " " << clientInfo.second[2] << " " << clientInfo.second[3] <<endl;
 
-            if(indexOfSeat != -1){
-                outputStream << clientInfo.second[0] << " requests seat" << stoi(clientInfo.second[3]) << "," << " reserves seat " << indexOfSeat << ". Signed by Teller C.\n";
-            } else {
-                int index = -1;
-                for(int i = 1; i <= numberOfSeats; i++){
-                    if(seats.at(i) == "") {
-                        index = i;
-                        break;
-                    }
-                }
-                if(index != -1){
-                    seats[index] = "FULL";
-                    outputStream << clientInfo.second[0] << " requests seat" << stoi(clientInfo.second[3]) << ", reserves seat " << index << ". Signed by Teller C.\n";
-                }
-            }
+        pthread_mutex_lock(&mutex);
+        if(indexOfSeat != -1){
+            outputStream << clientInfo.second[0] << " requests seat " << stoi(clientInfo.second[3]) << "," << " reserves seat " << indexOfSeat << ". Signed by Teller "<<type<<".\n";
+        } else {
+            outputStream << clientInfo.second[0] << " requests seat " << stoi(clientInfo.second[3]) << ", reserves None. " << "Signed by Teller "<<type<<".\n";
         }
-    pthread_mutex_unlock(&mutex);
+        pthread_mutex_unlock(&mutex);
 }
+
+
+int getAvailableSeatForReserve(int numberOfSeats) {
+    int index = -1;
+    for(int i = 1; i <= numberOfSeats; i++){
+        if(seats.at(i) == "") {
+            index = i;
+            break;
+        }
+    }
+    return index;
+}
+
 void * printDoubleStringVector(void * args) {
     for(int i = 0; i < clients.size(); i++){
         for(int j=0; j < clients[i].size(); j++){
